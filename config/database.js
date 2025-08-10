@@ -3,9 +3,7 @@ require('dotenv').config(); // Nạp các biến môi trường từ file .env
 
 // Khởi tạo một đối tượng Sequelize để kết nối với database
 const sequelize = new Sequelize(
-  process.env.DB_NAME,      // Tên database
-  process.env.DB_USER,      // Tên người dùng
-  process.env.DB_PASSWORD,  // Mật khẩu
+   process.env.DATABASE_URL,
   {
     host: process.env.DB_HOST, // Host của database
     dialect: 'mysql', // Loại database đang dùng (mysql)
