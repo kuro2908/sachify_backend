@@ -22,13 +22,24 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
-// CORS configuration for port forwarding and external access
+// CORS configuration for development, port forwarding, and production
 app.use(cors({
   origin: [
+    // Local development
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+    
+    // Vercel frontend domains (add your actual Vercel URL here)
+    'sachify-frontend-gohlc4ofu-kuros-projects-e99bc0fe.vercel.app',
+    'sachify.id.vn',
+    
+    // Development port forwarding
+    /^https?:\/\/.*\.vercel\.app$/,
+    /^https?:\/\/.*\.devtunnels\.ms$/,
+    /^https?:\/\/.*\.ngrok\.io$/,
+    
     // Allow all origins for development (you can restrict this in production)
     /^https?:\/\/.*$/,
     /^http:\/\/.*$/,
