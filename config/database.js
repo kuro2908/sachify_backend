@@ -1,24 +1,29 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config(); // Nạp các biến môi trường từ file .env
+require('dotenv').config(); // Nạp các biến môi trường
 
-// Khởi tạo một đối tượng Sequelize để kết nối với database
+// Kiểm tra xem có biến DATABASE_URL không (ưu tiên cho môi trường production)
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set in environment variables');
+}
+
+// Khởi tạo Sequelize bằng chuỗi kết nối duy nhất
 const sequelize = new Sequelize(
-   process.env.DATABASE_URL,
+  process.env.DATABASE_URL, // Sử dụng trực tiếp chuỗi kết nối từ TiDB
   {
-    host: process.env.DB_HOST, // Host của database
-    dialect: 'mysql', // Loại database đang dùng (mysql)
-    logging: false, // Tắt việc in các câu lệnh SQL ra console cho gọn
+    dialect: 'mysql',
+    logging: false,
 
-    // === THÊM TÙY CHỌN DƯỚI ĐÂY ĐỂ SỬA LỖI MÚI GIỜ ===
+    // === PHẦN SỬA LỖI QUAN TRỌNG NHẤT ===
     dialectOptions: {
-      // Tùy chọn này đảm bảo các giá trị ngày/giờ được trả về dưới dạng chuỗi
-      // thay vì bị chuyển đổi tự động, tránh các vấn đề múi giờ không mong muốn.
-      dateStrings: true,
-      typeCast: true,
-    },
-    // Đặt múi giờ cho kết nối là +07:00 (Giờ Việt Nam)
-    // Mọi thao tác đọc/ghi thời gian sẽ được thực hiện theo múi giờ này.
-    timezone: '+07:00', 
+      // BẮT BUỘC: Bật chế độ kết nối an toàn (SSL/TLS)
+      // Đây là yêu cầu của TiDB Cloud để bảo mật dữ liệu.
+      ssl: {
+        // rejectUnauthorized: true, // Dòng này có thể gây lỗi trên một số môi trường
+                                    // Hãy thử bỏ nó đi hoặc đặt là `false` nếu vẫn lỗi.
+                                    // Với TiDB, thường chỉ cần một object `ssl` rỗng là đủ.
+      }
+    }
+    // ===================================
   }
 );
 
