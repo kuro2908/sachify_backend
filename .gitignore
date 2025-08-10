@@ -28,7 +28,3 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
-
-.env
-./config/credentials.json
-./config/firebase-service-account.json
