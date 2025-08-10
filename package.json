@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "google-auth-library": "^10.2.0",
+    "googleapis": "^154.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.14.2",
+    "nodemailer": "^7.0.5",
+    "sequelize": "^6.37.7",
+    "streamifier": "^0.1.1",
+    "uuid": "^11.1.0",
+    "web-truyen-app": "file:.."
+  }
+}
