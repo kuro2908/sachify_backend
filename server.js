@@ -88,47 +88,24 @@ app.use(errorHandler); // xử lí lỗi tập trung
 
 // Hàm khởi tạo kết nối và định nghĩa quan hệ
 async function initialize() {
-  const maxRetries = 3;
-  const retryDelay = 5000; // 5 giây
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`🔄 Đang thử kết nối database (lần ${attempt}/${maxRetries})...`);
-      
-      // Thêm timeout cho database connection
-      const dbConnectionPromise = sequelize.authenticate();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout')), 30000) // 30 giây timeout
-      );
-      
-      await Promise.race([dbConnectionPromise, timeoutPromise]);
-      console.log('✅ Kết nối đến database thành công!');
-      
-      // GỌI HÀM ĐỊNH NGHĨA QUAN HỆ TẠI ĐÂY
-      // Đây là bước quan trọng nhất để sửa lỗi "not associated"
-      defineAssociations();
-      console.log('✅ Các mối quan hệ đã được định nghĩa!');
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Kết nối đến database thành công!');
+    
+    // GỌI HÀM ĐỊNH NGHĨA QUAN HỆ TẠI ĐÂY
+    // Đây là bước quan trọng nhất để sửa lỗi "not associated"
+    defineAssociations();
+    console.log('✅ Các mối quan hệ đã được định nghĩa!');
 
-      // Chỉ khởi động server sau khi mọi thứ đã sẵn sàng
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Server đang lắng nghe tại http://localhost:${PORT}`);
-        console.log(`🌐 Server cũng có thể truy cập từ các thiết bị khác qua IP của máy`);
-        console.log(`⏰ Khởi động thành công lúc: ${new Date().toISOString()}`);
-      });
-      
-      return; // Thoát vòng lặp nếu thành công
-      
-    } catch (error) {
-      console.error(`❌ Lần thử ${attempt}/${maxRetries} thất bại:`, error.message);
-      
-      if (attempt === maxRetries) {
-        console.error('❌ Đã thử tối đa số lần, không thể khởi tạo ứng dụng');
-        process.exit(1); // Thoát tiến trình nếu không kết nối được DB
-      }
-      
-      console.log(`⏳ Chờ ${retryDelay/1000} giây trước khi thử lại...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
-    }
+    // Chỉ khởi động server sau khi mọi thứ đã sẵn sàng
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server đang lắng nghe tại http://localhost:${PORT}`);
+      console.log(`Server cũng có thể truy cập từ các thiết bị khác qua IP của máy`);
+    });
+
+  } catch (error) {
+    console.error('❌ Không thể khởi tạo ứng dụng:', error);
+    process.exit(1); // Thoát tiến trình nếu không kết nối được DB
   }
 }
 
