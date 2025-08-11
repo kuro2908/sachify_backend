@@ -3,8 +3,12 @@ require('dotenv').config(); // Nạp các biến môi trường
 
 // Kiểm tra xem có biến DATABASE_URL không (ưu tiên cho môi trường production)
 if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is not set in environment variables');
+  console.error('⚠️ Please check your Render environment variables');
   throw new Error('DATABASE_URL is not set in environment variables');
 }
+
+console.log('🔗 Connecting to database...');
 
 // Khởi tạo Sequelize bằng chuỗi kết nối duy nhất
 const sequelize = new Sequelize(
@@ -22,6 +26,18 @@ const sequelize = new Sequelize(
                                     // Hãy thử bỏ nó đi hoặc đặt là `false` nếu vẫn lỗi.
                                     // Với TiDB, thường chỉ cần một object `ssl` rỗng là đủ.
       }
+    },
+    
+    // Thêm timeout và retry options
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    
+    retry: {
+      max: 3
     }
     // ===================================
   }

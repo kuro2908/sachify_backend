@@ -1,34 +1,62 @@
 const nodemailer = require('nodemailer');
 
+let transporter = null;
+let isInitialized = false;
+
+// Lazy initialization function
+const initializeEmail = () => {
+  if (isInitialized) return transporter;
+  
+  try {
+    // Kiểm tra biến môi trường trước khi khởi tạo
+    if (!process.env.EMAIL_USERNAME || !process.env.EMAIL_PASSWORD) {
+      console.warn('⚠️ Email environment variables not set, email service will be disabled');
+      return null;
+    }
+
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    });
+    
+    isInitialized = true;
+    return transporter;
+  } catch (error) {
+    console.error('❌ Lỗi khởi tạo email service:', error);
+    return null;
+  }
+};
+
 // Tạo transporter cho Gmail
 const createTransporter = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USERNAME,
-            pass: process.env.EMAIL_PASSWORD
-        }
-    });
+  return initializeEmail();
 };
 
 // Hàm gửi email
 const sendEmail = async (options) => {
-    try {
-        const transporter = createTransporter();
-        
-        const mailOptions = {
-            from: `"Sachify" <${process.env.EMAIL_USERNAME}>`,
-            to: options.email,
-            subject: options.subject,
-            html: options.message
-        };
-
-        await transporter.sendMail(mailOptions);
-        console.log('Email đã được gửi thành công');
-    } catch (error) {
-        console.error('Lỗi khi gửi email:', error);
-        throw new Error('Không thể gửi email. Vui lòng thử lại sau.');
+  try {
+    const emailTransporter = createTransporter();
+    
+    if (!emailTransporter) {
+      throw new Error('Email service is not available. Please check environment variables.');
     }
+    
+    const mailOptions = {
+      from: `"Sachify" <${process.env.EMAIL_USERNAME}>`,
+      to: options.email,
+      subject: options.subject,
+      html: options.message
+    };
+
+    await emailTransporter.sendMail(mailOptions);
+    console.log('Email đã được gửi thành công');
+  } catch (error) {
+    console.error('Lỗi khi gửi email:', error);
+    throw new Error('Không thể gửi email. Vui lòng thử lại sau.');
+  }
 };
 
 // Hàm tạo template email reset password

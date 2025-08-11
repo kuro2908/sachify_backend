@@ -1,13 +1,32 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
-console.log('✅ Kết nối đến Cloudinary SDK thành công!');
+let isInitialized = false;
+
+// Lazy initialization function
+const initializeCloudinary = () => {
+  if (isInitialized) return;
+  
+  try {
+    // Kiểm tra biến môi trường trước khi khởi tạo
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.warn('⚠️ Cloudinary environment variables not set, Cloudinary service will be disabled');
+      return;
+    }
+
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+      secure: true,
+    });
+    
+    isInitialized = true;
+    console.log('✅ Kết nối đến Cloudinary SDK thành công!');
+  } catch (error) {
+    console.error('❌ Lỗi khởi tạo Cloudinary:', error);
+  }
+};
 
 /**
  * Upload một file buffer lên Cloudinary.
@@ -16,6 +35,12 @@ console.log('✅ Kết nối đến Cloudinary SDK thành công!');
  * @returns {Promise<object>} - Kết quả trả về từ Cloudinary, chứa URL và các thông tin khác.
  */
 const uploadToCloudinary = (buffer, folder) => {
+    initializeCloudinary();
+    
+    if (!isInitialized) {
+        throw new Error('Cloudinary service is not available. Please check environment variables.');
+    }
+
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             { folder: folder },
@@ -30,6 +55,13 @@ const uploadToCloudinary = (buffer, folder) => {
 
 const deleteFromCloudinary = async (publicId) => {
     try {
+        initializeCloudinary();
+        
+        if (!isInitialized) {
+            console.warn('⚠️ Cloudinary service not available, skipping file deletion');
+            return;
+        }
+
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
         console.error("Lỗi khi xóa file trên Cloudinary:", error);
