@@ -138,7 +138,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     await user.save();
 
     // Tạo URL reset
-    const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+    const resetURL = `${process.env.FRONTEND_URL || 'https://sachify.id.vn'}/reset-password/${resetToken}`;
 
     // Tạo nội dung email
     const message = createPasswordResetEmail(resetURL, user.username);
