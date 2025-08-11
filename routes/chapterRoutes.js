@@ -19,6 +19,9 @@ const parseFormData = (req, res, next) => {
                 return next(err);
             }
             
+            console.log('Multer processed files:', req.files);
+            console.log('Multer processed body:', req.body);
+            
             // Xử lý dữ liệu từ req.files và req.body
             if (req.files && req.files.length > 0) {
                 // Tạo req.body nếu chưa có
@@ -26,19 +29,22 @@ const parseFormData = (req, res, next) => {
                     req.body = {};
                 }
                 
-                // Xử lý từng file
+                // Tạo cấu trúc req.files.files cho field 'files'
+                const filesField = req.files.filter(file => file.fieldname === 'files');
+                if (filesField.length > 0) {
+                    req.files.files = filesField;
+                }
+                
+                // Xử lý các field khác (không phải files)
                 req.files.forEach(file => {
-                    if (file.fieldname === 'files') {
-                        // Nếu là field 'files', tạo array
-                        if (!req.body.files) {
-                            req.body.files = [];
-                        }
-                        req.body.files.push(file);
-                    } else {
-                        // Nếu là field khác, chuyển buffer thành string
+                    if (file.fieldname !== 'files') {
+                        // Chuyển buffer thành string cho các field khác
                         req.body[file.fieldname] = file.buffer.toString();
                     }
                 });
+                
+                console.log('After processing - req.files.files:', req.files.files);
+                console.log('After processing - req.body:', req.body);
             }
             
             next();
