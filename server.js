@@ -58,8 +58,16 @@ app.use(cors({
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
   maxAge: 86400 // 24 hours
 }));
-app.use(express.json()); // Để parse JSON từ request body
-app.use(express.urlencoded({ extended: true })); // Để parse form data
+app.use(express.json({ limit: '50mb' })); // Để parse JSON từ request body, tăng limit
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Để parse form data, tăng limit
+
+// Tăng timeout cho server để xử lý upload dài
+app.use((req, res, next) => {
+  // Tăng timeout cho upload (5 phút)
+  req.setTimeout(300000); // 5 phút
+  res.setTimeout(300000); // 5 phút
+  next();
+});
 
 
 // Sử dụng các Routes

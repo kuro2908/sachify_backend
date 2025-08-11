@@ -200,14 +200,42 @@ exports.createChapter = asyncHandler(async (req, res, next) => {
         const destination = `chapters/${storyId}/chapter-${chapterNumber}.txt`;
         contentUrls = await uploadToFirebase(Buffer.from(textContent, 'utf8'), destination, 'text/plain');
     } else if (contentType === 'IMAGES') {
-        // Với truyện tranh, upload file ảnh
-        const uploadPromises = req.files.files.map((file, index) => {
+        // Với truyện tranh, upload file ảnh với progress tracking
+        console.log(`📚 Bắt đầu upload ${req.files.files.length} ảnh cho chương ${chapterNumber}`);
+        
+        const uploadPromises = req.files.files.map(async (file, index) => {
             const pageNumber = index + 1;
             const destination = `chapters/${storyId}/chapter-${chapterNumber}/page-${pageNumber}.jpg`;
-            return uploadToFirebase(file.buffer, destination, file.mimetype);
+            
+            try {
+                console.log(`📤 Uploading page ${pageNumber}/${req.files.files.length}: ${destination}`);
+                const result = await uploadToFirebase(file.buffer, destination, file.mimetype);
+                console.log(`✅ Uploaded page ${pageNumber}/${req.files.files.length} successfully`);
+                return result;
+            } catch (error) {
+                console.error(`❌ Failed to upload page ${pageNumber}:`, error);
+                throw new Error(`Không thể upload trang ${pageNumber}: ${error.message}`);
+            }
         });
         
-        contentUrls = await Promise.all(uploadPromises);
+        // Upload tuần tự để tránh quá tải Firebase
+        contentUrls = [];
+        for (let i = 0; i < uploadPromises.length; i++) {
+            try {
+                const result = await uploadPromises[i];
+                contentUrls.push(result);
+                console.log(`📊 Progress: ${i + 1}/${uploadPromises.length} pages uploaded`);
+            } catch (error) {
+                // Nếu có lỗi, xóa các file đã upload thành công
+                if (contentUrls.length > 0) {
+                    console.log(`🧹 Cleaning up ${contentUrls.length} uploaded files due to error`);
+                    await deleteFromFirebase(contentUrls);
+                }
+                throw error;
+            }
+        }
+        
+        console.log(`🎉 Tất cả ${contentUrls.length} ảnh đã được upload thành công!`);
     } else {
         const error = new Error('Loại nội dung không hợp lệ.');
         error.statusCode = 400;
@@ -270,12 +298,41 @@ exports.updateChapter = asyncHandler(async (req, res, next) => {
             const destination = `chapters/${chapter.storyId}/chapter-${chapter.chapterNumber}.txt`;
             newContentUrls = await uploadToFirebase(file.buffer, destination, file.mimetype);
         } else { // IMAGES
-            const uploadPromises = req.files.map((file, index) => {
+            console.log(`📚 Bắt đầu upload ${req.files.length} ảnh mới cho chương ${chapter.chapterNumber}`);
+            
+            const uploadPromises = req.files.map(async (file, index) => {
                 const pageNumber = index + 1;
                 const destination = `chapters/${chapter.storyId}/chapter-${chapter.chapterNumber}/page-${pageNumber}.jpg`;
-                return uploadToFirebase(file.buffer, destination, file.mimetype);
+                
+                try {
+                    console.log(`📤 Uploading new page ${pageNumber}/${req.files.length}: ${destination}`);
+                    const result = await uploadToFirebase(file.buffer, destination, file.mimetype);
+                    console.log(`✅ Uploaded new page ${pageNumber}/${req.files.length} successfully`);
+                    return result;
+                } catch (error) {
+                    console.error(`❌ Failed to upload new page ${pageNumber}:`, error);
+                    throw new Error(`Không thể upload trang ${pageNumber}: ${error.message}`);
+                }
             });
-            newContentUrls = await Promise.all(uploadPromises);
+            
+            // Upload tuần tự để tránh quá tải Firebase
+            newContentUrls = [];
+            for (let i = 0; i < uploadPromises.length; i++) {
+                try {
+                    const result = await uploadPromises[i];
+                    newContentUrls.push(result);
+                    console.log(`📊 Progress: ${i + 1}/${uploadPromises.length} new pages uploaded`);
+                } catch (error) {
+                    // Nếu có lỗi, xóa các file đã upload thành công
+                    if (newContentUrls.length > 0) {
+                        console.log(`🧹 Cleaning up ${newContentUrls.length} uploaded files due to error`);
+                        await deleteFromFirebase(newContentUrls);
+                    }
+                    throw error;
+                }
+            }
+            
+            console.log(`🎉 Tất cả ${newContentUrls.length} ảnh mới đã được upload thành công!`);
         }
         chapter.contentUrls = newContentUrls;
     }

@@ -56,7 +56,8 @@ const uploadToFirebase = async (buffer, destination, contentType) => {
   const file = firebaseBucket.file(destination);
   const accessToken = uuidv4();
 
-  await file.save(buffer, {
+  // Tăng timeout cho upload (5 phút)
+  const uploadOptions = {
     metadata: {
       contentType: contentType,
       metadata: {
@@ -64,11 +65,22 @@ const uploadToFirebase = async (buffer, destination, contentType) => {
       }
     },
     public: true,
-    validation: 'md5'
-  });
+    validation: 'md5',
+    timeout: 300000, // 5 phút
+    resumable: true, // Cho phép resume upload nếu bị gián đoạn
+  };
 
-  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseBucket.name}/o/${encodeURIComponent(destination)}?alt=media&token=${accessToken}`;
-  return publicUrl;
+  try {
+    console.log(`📤 Bắt đầu upload file: ${destination}`);
+    await file.save(buffer, uploadOptions);
+    console.log(`✅ Upload thành công: ${destination}`);
+    
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseBucket.name}/o/${encodeURIComponent(destination)}?alt=media&token=${accessToken}`;
+    return publicUrl;
+  } catch (error) {
+    console.error(`❌ Lỗi upload file ${destination}:`, error);
+    throw new Error(`Không thể upload file ${destination}: ${error.message}`);
+  }
 };
 
 const deleteFromFirebase = async (paths) => {
