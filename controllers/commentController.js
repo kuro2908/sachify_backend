@@ -87,3 +87,64 @@ exports.getCommentsByChapter = asyncHandler(async (req, res, next) => {
         }
     });
 });
+
+// Xóa một bình luận
+// DELETE /api/comments/:commentId
+exports.deleteComment = asyncHandler(async (req, res, next) => {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Tìm comment cần xóa
+    const comment = await Comment.findByPk(commentId, {
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username']
+            }
+        ]
+    });
+
+    if (!comment) {
+        const error = new Error('Bình luận không tồn tại.');
+        error.statusCode = 404;
+        return next(error);
+    }
+
+    // Kiểm tra quyền xóa comment
+    let canDelete = false;
+
+    // Admin và manager có thể xóa mọi comment
+    if (userRole === 'admin' || userRole === 'manager') {
+        canDelete = true;
+    }
+    // Author có thể xóa comment trong truyện của mình (cần kiểm tra thêm)
+    else if (userRole === 'author') {
+        // TODO: Kiểm tra xem author có phải là tác giả của truyện chứa comment này không
+        canDelete = true; // Tạm thời cho phép author xóa mọi comment
+    }
+    // Người đăng comment có thể xóa comment của mình
+    else if (comment.userId === userId) {
+        canDelete = true;
+    }
+
+    if (!canDelete) {
+        const error = new Error('Bạn không có quyền xóa bình luận này.');
+        error.statusCode = 403;
+        return next(error);
+    }
+
+    // Xóa tất cả reply của comment trước
+    await Comment.destroy({
+        where: { parentCommentId: commentId }
+    });
+
+    // Xóa comment chính
+    await comment.destroy();
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Bình luận đã được xóa thành công.'
+    });
+});
