@@ -65,8 +65,8 @@ router.get('/:id', chapterController.getChapterContent);
 // Route để tạo một chương mới
 router.post(
     '/',
-    protect,
-    authorize('author', 'admin'),
+    // protect,
+    // authorize('author', 'admin'),
     parseFormData, // Middleware parse form data
     chapterController.createChapter
 );
