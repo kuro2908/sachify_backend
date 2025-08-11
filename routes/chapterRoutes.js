@@ -5,44 +5,38 @@ const { uploadChapterContentWithFormData, uploadFormDataOnly, uploadAny, uploadA
 
 const router = express.Router();
 
-// Middleware để parse form data
+// Middleware để parse form data - Sửa lỗi "Unexpected field"
 const parseFormData = (req, res, next) => {
     if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
-        // Sử dụng multer để parse multipart form data
+        // Sử dụng multer.any() để xử lý tất cả các field một cách linh hoạt
         const multer = require('multer');
         const storage = multer.memoryStorage();
-        const upload = multer({ storage }).fields([
-            { name: 'storyId', maxCount: 1 },
-            { name: 'chapterNumber', maxCount: 1 },
-            { name: 'title', maxCount: 1 },
-            { name: 'contentType', maxCount: 1 },
-            { name: 'isPublished', maxCount: 1 },
-            { name: 'content', maxCount: 1 },
-            { name: 'files', maxCount: 10 }
-        ]);
+        const upload = multer({ storage }).any(); // Xử lý tất cả fields
         
         upload(req, res, (err) => {
             if (err) {
+                console.error('Multer error:', err);
                 return next(err);
             }
             
-            // Nếu req.body đã có dữ liệu, không cần parse thêm
-            if (req.body && Object.keys(req.body).length > 0) {
-                // Keep existing data
-            }
-            // Nếu req.body rỗng nhưng req.files có dữ liệu, parse từ req.files
-            else if (req.files && Object.keys(req.files).length > 0) {
-                req.body = {};
-                Object.keys(req.files).forEach(fieldName => {
-                    const files = req.files[fieldName];
-                    if (files && files.length > 0) {
-                        if (fieldName === 'files') {
-                            // Giữ nguyên files cho field 'files'
-                            req.body[fieldName] = files;
-                        } else {
-                            // Chuyển đổi buffer thành string cho các field khác
-                            req.body[fieldName] = files[0].buffer.toString();
+            // Xử lý dữ liệu từ req.files và req.body
+            if (req.files && req.files.length > 0) {
+                // Tạo req.body nếu chưa có
+                if (!req.body) {
+                    req.body = {};
+                }
+                
+                // Xử lý từng file
+                req.files.forEach(file => {
+                    if (file.fieldname === 'files') {
+                        // Nếu là field 'files', tạo array
+                        if (!req.body.files) {
+                            req.body.files = [];
                         }
+                        req.body.files.push(file);
+                    } else {
+                        // Nếu là field khác, chuyển buffer thành string
+                        req.body[file.fieldname] = file.buffer.toString();
                     }
                 });
             }
