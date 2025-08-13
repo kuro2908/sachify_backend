@@ -7,6 +7,7 @@ const Category = require('../models/category'); // Import Category
 const ReadingHistory = require('../models/readingHistory'); // Import ReadingHistory
 const UserFollow = require('../models/userFollow');
 const ProfileComment = require('../models/profileComment');
+const Review = require('../models/review'); // Import Review
 const asyncHandler = require('../utils/asyncHandler');
 
 exports.addBookmark = asyncHandler(async (req, res, next) => {
@@ -411,6 +412,84 @@ exports.requestAuthorRole = asyncHandler(async (req, res, next) => {
         data: {
             authorRequest: true,
             authorRequestDate: user.authorRequestDate
+        }
+    });
+});
+
+// Lấy top tác giả có nhiều truyện nhất
+// GET /api/users/rankings/most-stories
+exports.getTopAuthorsByStoryCount = asyncHandler(async (req, res, next) => {
+    const { limit = 10 } = req.query;
+
+    const topAuthors = await User.findAll({
+        attributes: [
+            'id',
+            'username',
+            'avatar_url',
+            [literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved')`), 'storyCount']
+        ],
+        where: literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved') > 0`),
+        order: [[literal('storyCount'), 'DESC']],
+        limit: parseInt(limit, 10),
+        include: [
+            {
+                model: Story,
+                as: 'stories',
+                where: { publication_status: 'approved' },
+                attributes: ['id', 'title', 'cover_image_url'],
+                required: false
+            }
+        ]
+    });
+
+    res.status(200).json({
+        status: 'success',
+        results: topAuthors.length,
+        data: {
+            authors: topAuthors
+        }
+    });
+});
+
+// Lấy top tác giả có tổng rating truyện cao nhất
+// GET /api/users/rankings/highest-rating
+exports.getTopAuthorsByRating = asyncHandler(async (req, res, next) => {
+    const { limit = 10 } = req.query;
+
+    const topAuthors = await User.findAll({
+        attributes: [
+            'id',
+            'username',
+            'avatar_url',
+            [literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved')`), 'storyCount'],
+            [literal(`(SELECT AVG(r.rating) FROM reviews r INNER JOIN stories s ON r.story_id = s.id WHERE s.author_id = User.id AND s.publication_status = 'approved')`), 'averageRating'],
+            [literal(`(SELECT COUNT(*) FROM reviews r INNER JOIN stories s ON r.story_id = s.id WHERE s.author_id = User.id AND s.publication_status = 'approved')`), 'totalReviews']
+        ],
+        where: literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved') > 0`),
+        order: [[literal('averageRating'), 'DESC']],
+        limit: parseInt(limit, 10),
+        include: [
+            {
+                model: Story,
+                as: 'stories',
+                where: { publication_status: 'approved' },
+                attributes: ['id', 'title', 'cover_image_url'],
+                required: false
+            }
+        ]
+    });
+
+    // Lọc ra những tác giả có rating (loại bỏ null)
+    const filteredAuthors = topAuthors.filter(author => 
+        author.dataValues.averageRating !== null && 
+        author.dataValues.averageRating > 0
+    );
+
+    res.status(200).json({
+        status: 'success',
+        results: filteredAuthors.length,
+        data: {
+            authors: filteredAuthors
         }
     });
 });

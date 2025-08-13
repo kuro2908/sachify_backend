@@ -10,6 +10,11 @@ router.get('/:userId/comments', userController.getProfileComments);
 // Route lấy thông tin chi tiết trang cá nhân
 router.get('/:userId', userController.getUserProfile);
 
+// Route lấy top tác giả có nhiều truyện nhất
+router.get('/rankings/most-stories', userController.getTopAuthorsByStoryCount);
+// Route lấy top tác giả có rating cao nhất
+router.get('/rankings/highest-rating', userController.getTopAuthorsByRating);
+
 
 // === CÁC ROUTE ĐƯỢC BẢO VỆ (PROTECTED) ===
 // Tất cả các route dưới đây đều yêu cầu phải đăng nhập
