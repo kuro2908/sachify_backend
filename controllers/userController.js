@@ -425,7 +425,6 @@ exports.getTopAuthorsByStoryCount = asyncHandler(async (req, res, next) => {
         attributes: [
             'id',
             'username',
-            'avatar_url',
             [literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved')`), 'storyCount']
         ],
         where: literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved') > 0`),
@@ -460,7 +459,6 @@ exports.getTopAuthorsByRating = asyncHandler(async (req, res, next) => {
         attributes: [
             'id',
             'username',
-            'avatar_url',
             [literal(`(SELECT COUNT(*) FROM stories WHERE stories.author_id = User.id AND stories.publication_status = 'approved')`), 'storyCount'],
             [literal(`(SELECT AVG(r.rating) FROM reviews r INNER JOIN stories s ON r.story_id = s.id WHERE s.author_id = User.id AND s.publication_status = 'approved')`), 'averageRating'],
             [literal(`(SELECT COUNT(*) FROM reviews r INNER JOIN stories s ON r.story_id = s.id WHERE s.author_id = User.id AND s.publication_status = 'approved')`), 'totalReviews']
